@@ -64,8 +64,32 @@ function buildRequestHeaders(request, upstreamUrl) {
     }
   }
   headers.set("Host", upstreamUrl.host);
-  headers.set("Origin", upstreamUrl.origin);
-  headers.set("Referer", upstreamUrl.origin + "/");
+  const isGet = request.method === "GET" || request.method === "HEAD";
+  const isDocument =
+    isGet &&
+    upstreamUrl.pathname === "/maps" &&
+    (request.headers.get("Sec-Fetch-Dest") || "empty") === "empty";
+  if (isDocument) {
+    headers.delete("Origin");
+    headers.delete("Referer");
+    headers.set(
+      "Accept",
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+    );
+    headers.set("Sec-Fetch-Dest", "document");
+    headers.set("Sec-Fetch-Mode", "navigate");
+    headers.set("Sec-Fetch-Site", "none");
+    headers.set("Sec-Fetch-User", "?1");
+    headers.set("Upgrade-Insecure-Requests", "1");
+  } else if (!isGet) {
+    headers.set("Origin", upstreamUrl.origin);
+    headers.set("Referer", upstreamUrl.origin + "/");
+  } else {
+    headers.set("Referer", upstreamUrl.origin + "/");
+  }
+  if (!headers.get("Accept-Language")) {
+    headers.set("Accept-Language", "ja,en;q=0.8");
+  }
   const cookie = headers.get("Cookie") || "";
   if (!/(^|;\s*)CONSENT=/.test(cookie)) {
     headers.set("Cookie", (cookie ? cookie + "; " : "") + "CONSENT=YES+cb");
