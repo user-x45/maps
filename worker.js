@@ -114,12 +114,29 @@ function isTextType(contentType) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request) {
     const url = new URL(request.url);
     const origin = url.origin;
 
-    if (url.pathname === "/" || url.pathname === "/index.html") {
-      return env.ASSETS.fetch(request);
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+          "Access-Control-Max-Age": "86400",
+        },
+      });
+    }
+
+    if (url.pathname === "/") {
+      return new Response("OK", {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
 
     if (url.pathname === "/favicon.ico") {
@@ -128,7 +145,10 @@ export default {
 
     const { host, path } = parseTarget(url);
     if (!isAllowed(host)) {
-      return new Response("Forbidden host", { status: 403 });
+      return new Response("Forbidden host", {
+        status: 403,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
     const upstreamUrl = new URL(`https://${host}${path}${url.search}`);
@@ -145,7 +165,10 @@ export default {
     try {
       upstream = await fetch(upstreamUrl.toString(), init);
     } catch (e) {
-      return new Response("Upstream fetch failed", { status: 502 });
+      return new Response("Upstream fetch failed", {
+        status: 502,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
     const headers = buildResponseHeaders(upstream, upstreamUrl, origin);
